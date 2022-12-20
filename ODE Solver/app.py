@@ -57,7 +57,7 @@ def eval_gs(expression,x0,xf):
     #print('----eval gs----')
     if(expression==None or expression==''):return [],[]
     #print('calc gs')
-    xs = np.linspace(x0,xf,max(int((xf-x0)/h),30))
+    xs = np.linspace(x0,xf,max(int((xf-x0)/h),50,int((xf-x0)/0.1)))
     ys=[]
     for x in xs:
         ys.append(eval(expression))
