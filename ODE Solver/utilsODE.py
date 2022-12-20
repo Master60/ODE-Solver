@@ -22,7 +22,7 @@ def derivatives(x, y, expression):
     for i in range(n-1):
         dydx[i] = y[i+1]
     
-    expression = expression.replace("x", str(x))
+    
     
     for i in range(1, n):
         expression = expression.replace("yp" + str(i), str(y[i]))
@@ -110,6 +110,7 @@ def solveODE(xi, y_initial, xf, h, xout_step, expression):
     y = y_initial
 
     while(x < xf):
+        #print('int ode')
         xend = x + xout_step
         if (xend > xf):
             xend = xf
