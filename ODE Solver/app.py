@@ -31,10 +31,9 @@ def popup_initial(order):
         [sg.Text("y = ",font=FONT),sg.Input(key='-yinit-')]
         
     ]
-    if order>=2 :
-        layout.append([sg.Text("y' = ",font=FONT),sg.Input(key='-ydinit-')])
-    if order>=3:
-        layout.append([sg.Text("y'' = ",font=FONT),sg.Input(key='-yddinit-')])
+
+    for i in range(1, order):
+            layout.append([sg.Text("y" + "'" * i + "= ", font=FONT), sg.Input(key = "-y" + "d"*i + "init-")])
     layout.append([sg.Column(col_layout,expand_x=True, element_justification='right')])
     window = sg.Window("Initial Conditions", layout, use_default_focus=False,return_keyboard_events=True, finalize=True, modal=True,size=(300,300))
     block_focus(window)
@@ -72,9 +71,9 @@ menu_layout = [
 layout = [
     [sg.Menu(menu_layout)],
     [sg.Push(),sg.Text('ODE Solver',font='Hilvetica 30'),sg.Push()],
-    [sg.Text('Order',font=FONT),sg.Spin([1,2,3],size=(5,1),font=FONT,readonly=True,enable_events=True,key='-ORDER-'),sg.Push(),
+    [sg.Text('Order',font=FONT),sg.Spin([1,2,3,4,5],size=(5,1),font=FONT,readonly=True,enable_events=True,key='-ORDER-'),sg.Push(),
     sg.Text('',visible=False,key='-init-',font=FONT)],
-    [sg.Text("y'=",key='-YDASH-',font=FONT),sg.Input(size=(30,4),font=FONT,key='-EQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..'),
+    [sg.Text("y'=",key='-YDASH-',font=FONT),sg.Input(size=(27,4),font=FONT,key='-EQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..'),
     sg.Push(),sg.Button('Initial Conditions',key='-BTN_INIT-',font=FONT)],
     [sg.Text('Enter step size h=',font=FONT),sg.Input(size=(10,4),font=FONT,key='-STP-',enable_events=True),sg.Text("x final = ",font=FONT),sg.Input(key='-xfinit-',size=(10,4),font=FONT)],
     [sg.Text('GS (optional) y=',font=FONT),sg.Input(size=(30,4),font=FONT,key='-GEQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..')],
@@ -126,7 +125,9 @@ while True:
         break
 
     if event == '-ORDER-':
-        ystr = 'y' + "'"*int(values['-ORDER-']) +'= '
+        order = int(values['-ORDER-'])
+        ystr = 'y' + "'" * order +'= '
+        
         window['-YDASH-'].update(ystr)
         initialcond=None
         window['-init-'].update('',visible=False)
@@ -136,12 +137,13 @@ while True:
         
 
     if event == '-BTN_INIT-':
-        icd = popup_initial(values['-ORDER-'])
+        order = values['-ORDER-']
+        icd = popup_initial(order)
         if(icd==None):continue
         initialcond=icd
         initstr = 'Initial Point:'+ ' (' + initialcond['-xinit-'] +', '+ initialcond['-yinit-']
-        if '-ydinit-' in initialcond.keys():initstr+= ', ' + initialcond['-ydinit-']
-        if '-yddinit-' in initialcond.keys():initstr+=', '  + initialcond['-yddinit-']
+        for i in range(1, order):
+            initstr += ', ' + initialcond['-y' + 'd' * i + 'init-']
         initstr+=')'
         
         window['-init-'].update(initstr,visible=True)
@@ -155,8 +157,9 @@ while True:
             n = values['-ORDER-']
             y=np.array([0]*n)
             y[0] = float(initialcond['-yinit-'])
-            if(n>=2):y[1]=float(initialcond['-ydinit-'])
-            if (n>=3):y[2]=float(initialcond['-yddinit-'])
+            for i in range(1, n):
+                y[i] = float(initialcond['-y' + 'd' * i + 'init-'])
+            print(y)
             #print(xf,h,n,x,y,expression,values['-GEQU-'])
             xout_step=h+0.1
             xgs,ygs = eval_gs(values['-GEQU-'],x,xf)
