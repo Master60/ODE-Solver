@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 sg.theme('LightGrey1')
 FONT = 'Hilvetica 15'
 DASHES = ['dy/dx','d2y/dx2','d3y/dx3']
+METHODS = ["Euler's Method", "Heun's Method", "Midpoint Method", "Ralston's Method", "RK3", "RK4", "Butcher's RK5"]
 expression = ''
 initialcond = ''
 h = 0
@@ -29,7 +30,7 @@ def popup_initial(order):
         [sg.Text("Enter Initial Conditions\n")],
         [sg.Text("x = ",font=FONT),sg.Input(key='-xinit-')],
         [sg.Text("y = ",font=FONT),sg.Input(key='-yinit-')]
-        
+
     ]
 
     for i in range(1, order):
@@ -45,17 +46,14 @@ def popup_initial(order):
     return values
 
 def update_figure(x,y,format,label):
-    #print('----- in update fig -----')
     axes = fig.axes
     axes[0].plot(x,y,format,label=label)
     axes[0].legend()
     figure_canvas_agg.draw()
     figure_canvas_agg.get_tk_widget().pack()
 
-def eval_gs(expression,x0,xf):
-    #print('----eval gs----')
+def eval_ts(expression,x0,xf):
     if(expression==None or expression==''):return [],[]
-    #print('calc gs')
     xs = np.linspace(x0,xf,max(int((xf-x0)/h),50,int((xf-x0)/0.1)))
     ys=[]
     for x in xs:
@@ -75,8 +73,10 @@ layout = [
     sg.Text('',visible=False,key='-init-',font=FONT)],
     [sg.Text("y'=",key='-YDASH-',font=FONT),sg.Input(size=(27,4),font=FONT,key='-EQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..'),
     sg.Push(),sg.Button('Initial Conditions',key='-BTN_INIT-',font=FONT)],
-    [sg.Text('Enter step size h=',font=FONT),sg.Input(size=(10,4),font=FONT,key='-STP-',enable_events=True),sg.Text("x final = ",font=FONT),sg.Input(key='-xfinit-',size=(10,4),font=FONT)],
-    [sg.Text('GS (optional) y=',font=FONT),sg.Input(size=(30,4),font=FONT,key='-GEQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..')],
+    [sg.Text('Step Size (h)=',font=FONT),sg.Input(size=(10,4),font=FONT,key='-STP-',enable_events=True),sg.Push(),sg.Text("Method: ", font=FONT), sg.Combo(key='-METHOD-', values=METHODS, default_value="RK4", enable_events=True, readonly=True)],
+    [sg.Text('Out Interval = ',font=FONT),sg.Input(size=(10,4),font=FONT,key='-STPOUT-',enable_events=True), sg.Push(),
+    sg.Text("Final x = ",font=FONT),sg.Input(key='-xfinit-',size=(10,4),font=FONT)],
+    [sg.Text('Solution:  y  = ',font=FONT),sg.Input(size=(40,4),font=FONT,key='-GEQU-',enable_events=True,tooltip='dy/dx type in yp1 \nd2y/dx2 type in yp2 and so on..')],
     [sg.Button('Solve',font=FONT,key='-SOLVE-'),sg.Button('Reset',font=FONT,key='-RESET-',button_color=('#FFFFFF', '#FF0000'))],
     [sg.Canvas(key='-CANVAS-')]
 ]
@@ -110,31 +110,32 @@ def reset_vals():
     window['-EQU-'].update('')
     window['-init-'].update('',visible=False)
     window['-STP-'].update('')
+    window['-STPOUT-'].update('')
     window['-GEQU-'].update('')
     window['-xfinit-'].update('')
     window['-CANVAS-'].update()
+    window['-METHOD-'].update('RK4')
     reset_plot()
-    
-    
+
+
 create_plot()
 
 while True:
     event,values = window.read()
-
     if event == sg.WIN_CLOSED:
         break
 
     if event == '-ORDER-':
         order = int(values['-ORDER-'])
         ystr = 'y' + "'" * order +'= '
-        
+
         window['-YDASH-'].update(ystr)
         initialcond=None
         window['-init-'].update('',visible=False)
 
     if event == '-EQU-':
         expression = values['-EQU-']
-        
+
 
     if event == '-BTN_INIT-':
         order = values['-ORDER-']
@@ -145,35 +146,30 @@ while True:
         for i in range(1, order):
             initstr += ', ' + initialcond['-y' + 'd' * i + 'init-']
         initstr+=')'
-        
+
         window['-init-'].update(initstr,visible=True)
-        #print(initialcond)
     if event == '-SOLVE-':
         try:
             reset_plot()
+            method_idx = METHODS.index(values['-METHOD-'])
             xf = float(values['-xfinit-'])
             h = float(values['-STP-'])
+            xout_step = float(values['-STPOUT-'])
             x=float(initialcond['-xinit-'])
             n = values['-ORDER-']
             y=np.array([0]*n)
             y[0] = float(initialcond['-yinit-'])
             for i in range(1, n):
                 y[i] = float(initialcond['-y' + 'd' * i + 'init-'])
-            print(y)
-            #print(xf,h,n,x,y,expression,values['-GEQU-'])
-            xout_step=h+0.1
-            xgs,ygs = eval_gs(values['-GEQU-'],x,xf)
-            xout,yout = solveODE(x, y, xf, h, xout_step, expression)
-            #print('CAlculated ode')
+            x_true,y_true = eval_ts(values['-GEQU-'],x,xf)
+            xout,yout = solveODE(x, y, xf, h, xout_step, expression, method_idx)
             update_figure(xout,yout,'r-','ODE Approx.')
-            #print('drawn ode')
-            #print(xgs,ygs)
-            update_figure(xgs,ygs,'b-','General Solution')
+            update_figure(x_true,y_true,'b-','True Solution')
         except:
             sg.popup_error()
     if event =='-RESET-':
         reset_vals()
         print(xf,h,y,xout_step,expression)
         print('rest')
-    
+
 window.close()

@@ -196,7 +196,7 @@ def butchersRK5(x, y, h, expression):
 
 #------------------------------------------------------------------------------
 
-def integrator(x, y, h, xend, expression):
+def integrator(x, y, h, xend, expression, method):
     '''
     This function uses the Runge-Kutta method repeatedly to compute values of all yi
     at x, x+h, x+2h, ... until the value of xend is reached. The main use of this
@@ -214,21 +214,40 @@ def integrator(x, y, h, xend, expression):
         h -> The step size.
         xend -> The end of the interval, at which the values of yi should be returned.
         expression -> The mathematical expression of f.
+        method -> The numerical method used to evaluate y.
 
     Returns:
         y -> The value of y calculated at xend.
     '''  
     while(x < xend):
+        
         if (xend - x < h):
             h = xend - x
-        y = butchersRK5(x, y, h, expression)
+        
+        
+        if (method == 0):
+            y = euler(x, y, h, expression)
+        elif (method == 1):
+            y = heun(x, y, h, expression)
+        elif (method == 2):
+            y = midpoint(x, y, h, expression)
+        elif (method == 3):
+            y = ralston(x, y, h, expression)
+        elif (method == 4):
+            y = RK3(x, y, h, expression)
+        elif (method == 5):
+            y = RK4(x, y, h, expression)
+        else:
+            y = butchersRK5(x, y, h, expression)
+
+        
         x = x + h
         
     return y
 
 #------------------------------------------------------------------------------
 
-def solveODE(xi, y_initial, xf, h, xout_step, expression):
+def solveODE(xi, y_initial, xf, h, xout_step, expression, method):
     '''
     The function that will be called in our main program. Solves a genral ODE.
 
@@ -239,6 +258,7 @@ def solveODE(xi, y_initial, xf, h, xout_step, expression):
         h -> The step size used in the computation.
         xout_step -> The larger step size that the user wants the values of yi to be returned at.
         expression -> The mathematical expression of x.
+        method -> The numerical method used to solve for y.
 
     Returns:
         xout -> An array containing the values of x, x + xout_step, x + 2*cout_step, ...
@@ -250,11 +270,10 @@ def solveODE(xi, y_initial, xf, h, xout_step, expression):
     y = y_initial
 
     while(x < xf):
-        #print('int ode')
         xend = x + xout_step
         if (xend > xf):
             xend = xf
-        y = integrator(x, y, h, xend, expression)
+        y = integrator(x, y, h, xend, expression, method)
         x = xend
         xout.append(x)
         yout.append(y[0])
